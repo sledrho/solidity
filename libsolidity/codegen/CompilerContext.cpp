@@ -33,6 +33,8 @@
 #include <libsolidity/inlineasm/AsmAnalysis.h>
 #include <libsolidity/inlineasm/AsmAnalysisInfo.h>
 
+#include <libjulia/optimiser/Suite.h>
+
 #include <boost/algorithm/string/replace.hpp>
 
 #include <utility>
@@ -40,6 +42,7 @@
 
 // Change to "define" to output all intermediate code
 #undef SOL_OUTPUT_ASM
+#define SOL_OUTPUT_ASM
 #ifdef SOL_OUTPUT_ASM
 #include <libsolidity/inlineasm/AsmPrinter.h>
 #endif
@@ -282,6 +285,7 @@ void CompilerContext::resetVisitedNodes(ASTNode const* _node)
 void CompilerContext::appendInlineAssembly(
 	string const& _assembly,
 	vector<string> const& _localVariables,
+	set<string> const& _externallyUsedFunctions,
 	bool _system
 )
 {
@@ -359,6 +363,21 @@ void CompilerContext::appendInlineAssembly(
 
 		solAssert(false, message);
 	}
+
+	julia::OptimiserSuite suite;
+	set<string> externallyUsedIdentifiers = _externallyUsedFunctions;
+	externallyUsedIdentifiers.insert(_localVariables.begin(), _localVariables.end());
+	suite.run(*parserResult, analysisInfo, externallyUsedIdentifiers);
+
+	analysisInfo = assembly::AsmAnalysisInfo{};
+	analyzerResult = assembly::AsmAnalyzer(
+		analysisInfo,
+		errorReporter,
+		m_evmVersion,
+		boost::none,
+		assembly::AsmFlavour::Strict,
+		identifierAccess.resolve
+	).analyze(*parserResult);
 
 	solAssert(errorReporter.errors().empty(), "Failed to analyze inline assembly block.");
 	assembly::CodeGenerator::assemble(*parserResult, analysisInfo, *m_asm, identifierAccess, _system);

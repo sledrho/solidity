@@ -34,8 +34,12 @@ using Scope = dev::solidity::assembly::Scope;
 
 string Disambiguator::translateIdentifier(string const& _originalName)
 {
+	if (m_externallyUsedIdentifiers.count(_originalName))
+		return _originalName;
+
 	solAssert(!m_scopes.empty() && m_scopes.back(), "");
 	Scope::Identifier const* id = m_scopes.back()->lookup(_originalName);
+	// Identifier not found and it is also not an externally used identifier.
 	solAssert(id, "");
 	if (!m_translations.count(id))
 	{
