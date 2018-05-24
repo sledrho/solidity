@@ -177,7 +177,8 @@ BOOST_AUTO_TEST_CASE(conditional_expression_with_return_values)
 			function f(bool cond, uint v) returns (uint a, uint b) {
 				cond ? a = v : b = v;
 			}
-		})";
+		}
+	)";
 	compileAndRun(sourceCode);
 	ABI_CHECK(callContractFunction("f(bool,uint256)", true, u256(20)), encodeArgs(u256(20), u256(0)));
 	ABI_CHECK(callContractFunction("f(bool,uint256)", false, u256(20)), encodeArgs(u256(0), u256(20)));
@@ -480,6 +481,27 @@ BOOST_AUTO_TEST_CASE(do_while_loop)
 	};
 
 	testContractAgainstCppOnRange("f(uint256)", do_while_loop_cpp, 0, 5);
+}
+
+BOOST_AUTO_TEST_CASE(do_while_loop_continue)
+{
+	char const* sourceCode = R"(
+		contract test {
+			function f() public pure returns(uint r) {
+				uint i = 0;
+				do
+				{
+					if (i > 0) return 0;
+					i++;
+					continue;
+				} while (false);
+				return 42;
+			}
+		}
+	)";
+	compileAndRun(sourceCode);
+
+	ABI_CHECK(callContractFunction("f()"), encodeArgs(42));
 }
 
 BOOST_AUTO_TEST_CASE(nested_loops)
@@ -1667,7 +1689,7 @@ BOOST_AUTO_TEST_CASE(convert_fixed_bytes_to_uint_smaller_size)
 	char const* sourceCode = R"(
 		contract Test {
 			function bytesToUint(bytes4 s) returns (uint16 h) {
-				return uint16(s);
+				return uint16(uint32(s));
 			}
 		}
 	)";
@@ -1683,7 +1705,7 @@ BOOST_AUTO_TEST_CASE(convert_fixed_bytes_to_uint_greater_size)
 	char const* sourceCode = R"(
 		contract Test {
 			function bytesToUint(bytes4 s) returns (uint64 h) {
-				return uint64(s);
+				return uint64(uint32(s));
 			}
 		}
 	)";
@@ -1730,7 +1752,7 @@ BOOST_AUTO_TEST_CASE(convert_uint_to_fixed_bytes_smaller_size)
 	char const* sourceCode = R"(
 		contract Test {
 			function uintToBytes(uint32 h) returns (bytes2 s) {
-				return bytes2(h);
+				return bytes2(uint16(h));
 			}
 		}
 	)";
@@ -1746,7 +1768,7 @@ BOOST_AUTO_TEST_CASE(convert_uint_to_fixed_bytes_greater_size)
 	char const* sourceCode = R"(
 		contract Test {
 			function UintToBytes(uint16 h) returns (bytes8 s) {
-				return bytes8(h);
+				return bytes8(uint64(h));
 			}
 		}
 	)";
@@ -2105,7 +2127,7 @@ BOOST_AUTO_TEST_CASE(packed_keccak256_complex_types)
 	char const* sourceCode = R"(
 		contract test {
 			uint120[3] x;
-			function f() view returns (bytes32 hash1, bytes32 hash2, bytes32 hash3) {
+			function f() returns (bytes32 hash1, bytes32 hash2, bytes32 hash3) {
 				uint120[] memory y = new uint120[](3);
 				x[0] = y[0] = uint120(-2);
 				x[1] = y[1] = uint120(-3);
@@ -2216,7 +2238,8 @@ BOOST_AUTO_TEST_CASE(inter_contract_calls)
 			function setHelper(address haddress) {
 				h = Helper(haddress);
 			}
-		})";
+		}
+	)";
 	compileAndRun(sourceCode, 0, "Helper");
 	u160 const c_helperAddress = m_contractAddress;
 	compileAndRun(sourceCode, 0, "Main");
@@ -2246,7 +2269,8 @@ BOOST_AUTO_TEST_CASE(inter_contract_calls_with_complex_parameters)
 			function setHelper(address haddress) {
 				h = Helper(haddress);
 			}
-		})";
+		}
+	)";
 	compileAndRun(sourceCode, 0, "Helper");
 	u160 const c_helperAddress = m_contractAddress;
 	compileAndRun(sourceCode, 0, "Main");
@@ -2277,7 +2301,8 @@ BOOST_AUTO_TEST_CASE(inter_contract_calls_accessing_this)
 			function setHelper(address addr) {
 				h = Helper(addr);
 			}
-		})";
+		}
+	)";
 	compileAndRun(sourceCode, 0, "Helper");
 	u160 const c_helperAddress = m_contractAddress;
 	compileAndRun(sourceCode, 0, "Main");
@@ -2308,7 +2333,8 @@ BOOST_AUTO_TEST_CASE(calls_to_this)
 			function setHelper(address addr) {
 				h = Helper(addr);
 			}
-		})";
+		}
+	)";
 	compileAndRun(sourceCode, 0, "Helper");
 	u160 const c_helperAddress = m_contractAddress;
 	compileAndRun(sourceCode, 0, "Main");
@@ -2343,7 +2369,8 @@ BOOST_AUTO_TEST_CASE(inter_contract_calls_with_local_vars)
 			function setHelper(address haddress) {
 				h = Helper(haddress);
 			}
-		})";
+		}
+	)";
 	compileAndRun(sourceCode, 0, "Helper");
 	u160 const c_helperAddress = m_contractAddress;
 	compileAndRun(sourceCode, 0, "Main");
@@ -2373,7 +2400,8 @@ BOOST_AUTO_TEST_CASE(fixed_bytes_in_calls)
 			function setHelper(address addr) {
 				h = Helper(addr);
 			}
-		})";
+		}
+	)";
 	compileAndRun(sourceCode, 0, "Helper");
 	u160 const c_helperAddress = m_contractAddress;
 	compileAndRun(sourceCode, 0, "Main");
@@ -2403,7 +2431,8 @@ BOOST_AUTO_TEST_CASE(constructor_arguments_internal)
 			}
 			function getFlag() returns (bool ret) { return h.getFlag(); }
 			function getName() returns (bytes3 ret) { return h.getName(); }
-		})";
+		}
+	)";
 	compileAndRun(sourceCode, 0, "Main");
 	ABI_CHECK(callContractFunction("getFlag()"), encodeArgs(true));
 	ABI_CHECK(callContractFunction("getName()"), encodeArgs("abc"));
@@ -2506,7 +2535,8 @@ BOOST_AUTO_TEST_CASE(functions_called_by_constructor)
 			}
 			function getName() returns (bytes3 ret) { return name; }
 			function setName(bytes3 _name) private { name = _name; }
-		})";
+		}
+	)";
 	compileAndRun(sourceCode);
 	BOOST_REQUIRE(callContractFunction("getName()") == encodeArgs("abc"));
 }
@@ -2632,7 +2662,8 @@ BOOST_AUTO_TEST_CASE(value_for_constructor)
 			function getFlag() returns (bool ret) { return h.getFlag(); }
 			function getName() returns (bytes3 ret) { return h.getName(); }
 			function getBalances() returns (uint me, uint them) { me = this.balance; them = h.balance;}
-		})";
+		}
+	)";
 	compileAndRun(sourceCode, 22, "Main");
 	BOOST_REQUIRE(callContractFunction("getFlag()") == encodeArgs(true));
 	BOOST_REQUIRE(callContractFunction("getName()") == encodeArgs("abc"));
@@ -3128,7 +3159,7 @@ BOOST_AUTO_TEST_CASE(event)
 			function deposit(bytes32 _id, bool _manually) payable {
 				if (_manually) {
 					bytes32 s = 0x19dacbf83c5de6658e14cbf7bcae5c15eca2eedecf1c66fbca928e4d351bea0f;
-					log3(bytes32(msg.value), s, bytes32(msg.sender), _id);
+					log3(bytes32(msg.value), s, bytes32(uint256(msg.sender)), _id);
 				} else {
 					Deposit(msg.sender, _id, msg.value);
 				}
@@ -3525,7 +3556,7 @@ BOOST_AUTO_TEST_CASE(event_indexed_string)
 			event E(string indexed r, uint[4] indexed t);
 			function deposit() {
 				bytes(x).length = 90;
-				for (uint i = 0; i < 90; i++)
+				for (uint8 i = 0; i < 90; i++)
 					bytes(x)[i] = byte(i);
 				y[0] = 4;
 				y[1] = 5;
@@ -3737,7 +3768,8 @@ BOOST_AUTO_TEST_CASE(sha3_multiple_arguments)
 			{
 				d = sha3(a, b, c);
 			}
-		})";
+		}
+	)";
 	compileAndRun(sourceCode);
 
 	ABI_CHECK(callContractFunction("foo(uint256,uint256,uint256)", 10, 12, 13), encodeArgs(
@@ -3957,6 +3989,51 @@ BOOST_AUTO_TEST_CASE(call_forward_bytes)
 	ABI_CHECK(callContractFunction("val()"), encodeArgs(8));
 	ABI_CHECK(callContractFunction("forward()"), encodeArgs(true));
 	ABI_CHECK(callContractFunction("val()"), encodeArgs(0x80));
+}
+
+BOOST_AUTO_TEST_CASE(call_forward_bytes_length)
+{
+	char const* sourceCode = R"(
+		contract receiver {
+			uint public calledLength;
+			function() { calledLength = msg.data.length; }
+		}
+		contract sender {
+			receiver rec;
+			constructor() { rec = new receiver(); }
+			function viaCalldata() returns (uint) {
+				require(rec.call(msg.data));
+				return rec.calledLength();
+			}
+			function viaMemory() returns (uint) {
+				bytes memory x = msg.data;
+				require(rec.call(x));
+				return rec.calledLength();
+			}
+			bytes s;
+			function viaStorage() returns (uint) {
+				s = msg.data;
+				require(rec.call(s));
+				return rec.calledLength();
+			}
+		}
+	)";
+	compileAndRun(sourceCode, 0, "sender");
+
+	// No additional data, just function selector
+	ABI_CHECK(callContractFunction("viaCalldata()"), encodeArgs(4));
+	ABI_CHECK(callContractFunction("viaMemory()"), encodeArgs(0x20));
+	// Should be this with 0.5.0: encodeArgs(4));
+	ABI_CHECK(callContractFunction("viaStorage()"), encodeArgs(0x20));
+	// Should be this with 0.5.0: encodeArgs(4));
+
+	// Some additional unpadded data
+	bytes unpadded = asBytes(string("abc"));
+	ABI_CHECK(callContractFunctionNoEncoding("viaCalldata()", unpadded), encodeArgs(7));
+	ABI_CHECK(callContractFunctionNoEncoding("viaMemory()", unpadded), encodeArgs(0x20));
+	// Should be this with 0.5.0: encodeArgs(7));
+	ABI_CHECK(callContractFunctionNoEncoding("viaStorage()", unpadded), encodeArgs(0x20));
+	// Should be this with 0.5.0: encodeArgs(7));
 }
 
 BOOST_AUTO_TEST_CASE(copying_bytes_multiassign)
@@ -4359,7 +4436,8 @@ BOOST_AUTO_TEST_CASE(inline_member_init)
 				b = m_b;
 				c = m_c;
 			}
-		})";
+		}
+	)";
 	compileAndRun(sourceCode);
 	ABI_CHECK(callContractFunction("get()"), encodeArgs(5, 6, 8));
 }
@@ -4376,7 +4454,8 @@ BOOST_AUTO_TEST_CASE(inline_member_init_inheritence)
 			function Derived(){}
 			uint m_derived = 6;
 			function getDMember() returns (uint i) { return m_derived; }
-		})";
+		}
+	)";
 	compileAndRun(sourceCode);
 	ABI_CHECK(callContractFunction("getBMember()"), encodeArgs(5));
 	ABI_CHECK(callContractFunction("getDMember()"), encodeArgs(6));
@@ -4392,7 +4471,8 @@ BOOST_AUTO_TEST_CASE(inline_member_init_inheritence_without_constructor)
 		contract Derived is Base {
 			uint m_derived = 6;
 			function getDMember() returns (uint i) { return m_derived; }
-		})";
+		}
+	)";
 	compileAndRun(sourceCode);
 	ABI_CHECK(callContractFunction("getBMember()"), encodeArgs(5));
 	ABI_CHECK(callContractFunction("getDMember()"), encodeArgs(6));
@@ -4708,7 +4788,7 @@ BOOST_AUTO_TEST_CASE(array_copy_different_packing)
 			function test() returns (bytes10 a, bytes10 b, bytes10 c, bytes10 d, bytes10 e) {
 				data1.length = 9;
 				for (uint i = 0; i < data1.length; ++i)
-					data1[i] = bytes8(i);
+					data1[i] = bytes8(uint64(i));
 				data2 = data1;
 				a = data2[1];
 				b = data2[2];
@@ -4736,7 +4816,7 @@ BOOST_AUTO_TEST_CASE(array_copy_target_simple)
 			bytes17[10] data2; // 1 per slot, no offset counter
 			function test() returns (bytes17 a, bytes17 b, bytes17 c, bytes17 d, bytes17 e) {
 				for (uint i = 0; i < data1.length; ++i)
-					data1[i] = bytes8(i);
+					data1[i] = bytes8(uint64(i));
 				data2[8] = data2[9] = 2;
 				data2 = data1;
 				a = data2[1];
@@ -4768,14 +4848,14 @@ BOOST_AUTO_TEST_CASE(array_copy_target_leftover)
 				uint i;
 				for (i = 0; i < data2.length; ++i)
 					data2[i] = 0xffff;
-				check = uint(data2[31]) * 0x10000 | uint(data2[14]);
+				check = uint(uint16(data2[31])) * 0x10000 | uint(uint16(data2[14]));
 				for (i = 0; i < data1.length; ++i)
 					data1[i] = byte(uint8(1 + i));
 				data2 = data1;
 				for (i = 0; i < 16; ++i)
-					res1 |= uint(data2[i]) * 0x10000**i;
+					res1 |= uint(uint16(data2[i])) * 0x10000**i;
 				for (i = 0; i < 16; ++i)
-					res2 |= uint(data2[16 + i]) * 0x10000**i;
+					res2 |= uint(uint16(data2[16 + i])) * 0x10000**i;
 			}
 		}
 	)";
@@ -4801,7 +4881,7 @@ BOOST_AUTO_TEST_CASE(array_copy_target_leftover2)
 				data1[2] = 3;
 				data1[3] = 4;
 				for (uint i = 0; i < data2.length; ++i)
-					data2[i] = bytes10(0xffff00 | (1 + i));
+					data2[i] = bytes10(uint80(0xffff00 | (1 + i)));
 				data2 = data1;
 				r1 = data2[3];
 				r2 = data2[4];
@@ -5015,7 +5095,7 @@ BOOST_AUTO_TEST_CASE(byte_array_push_transition)
 		contract c {
 			bytes data;
 			function test() returns (uint) {
-				for (uint i = 1; i < 40; i++)
+				for (uint8 i = 1; i < 40; i++)
 				{
 					data.push(byte(i));
 					if (data.length != i) return 0x1000 + i;
@@ -5061,11 +5141,11 @@ BOOST_AUTO_TEST_CASE(bytes_index_access)
 		contract c {
 			bytes data;
 			function direct(bytes arg, uint index) external returns (uint) {
-				return uint(arg[index]);
+				return uint(uint8(arg[index]));
 			}
 			function storageCopyRead(bytes arg, uint index) external returns (uint) {
 				data = arg;
-				return uint(data[index]);
+				return uint(uint8(data[index]));
 			}
 			function storageWrite() external returns (uint) {
 				data.length = 35;
@@ -5076,7 +5156,7 @@ BOOST_AUTO_TEST_CASE(bytes_index_access)
 				data[31] |= 8;
 				data[30] = 1;
 				data[32] = 3;
-				return uint(data[30]) * 0x100 | uint(data[31]) * 0x10 | uint(data[32]);
+				return uint(uint8(data[30])) * 0x100 | uint(uint8(data[31])) * 0x10 | uint(uint8(data[32]));
 			}
 		}
 	)";
@@ -5099,7 +5179,7 @@ BOOST_AUTO_TEST_CASE(bytes_delete_element)
 			function test1() external returns (bool) {
 				data.length = 100;
 				for (uint i = 0; i < data.length; i++)
-					data[i] = byte(i);
+					data[i] = byte(uint8(i));
 				delete data[94];
 				delete data[96];
 				delete data[98];
@@ -5258,7 +5338,8 @@ BOOST_AUTO_TEST_CASE(pass_dynamic_arguments_to_the_base)
 			{}
 		}
 		contract Final is Derived(4) {
-		})";
+		}
+	)";
 	compileAndRun(sourceCode);
 	ABI_CHECK(callContractFunction("m_i()"), encodeArgs(4));
 }
@@ -5281,7 +5362,8 @@ BOOST_AUTO_TEST_CASE(pass_dynamic_arguments_to_the_base_base)
 			{}
 		}
 		contract Final is Derived(4) {
-		})";
+		}
+	)";
 	compileAndRun(sourceCode);
 	ABI_CHECK(callContractFunction("m_i()"), encodeArgs(4));
 }
@@ -5301,7 +5383,8 @@ BOOST_AUTO_TEST_CASE(pass_dynamic_arguments_to_the_base_base_with_gap)
 			function Derived(uint i) Base(i) {}
 		}
 		contract Final is Derived(4) {
-		})";
+		}
+	)";
 	compileAndRun(sourceCode);
 	ABI_CHECK(callContractFunction("m_i()"), encodeArgs(4));
 }
@@ -5312,7 +5395,8 @@ BOOST_AUTO_TEST_CASE(simple_constant_variables_test)
 		contract Foo {
 			function getX() returns (uint r) { return x; }
 			uint constant x = 56;
-	})";
+		}
+	)";
 	compileAndRun(sourceCode);
 	ABI_CHECK(callContractFunction("getX()"), encodeArgs(56));
 }
@@ -5325,7 +5409,8 @@ BOOST_AUTO_TEST_CASE(constant_variables)
 			enum ActionChoices { GoLeft, GoRight, GoStraight, Sit }
 			ActionChoices constant choices = ActionChoices.GoLeft;
 			bytes32 constant st = "abc\x00\xff__";
-	})";
+		}
+	)";
 	compileAndRun(sourceCode);
 }
 
@@ -7453,7 +7538,7 @@ BOOST_AUTO_TEST_CASE(short_strings)
 				if (data1[0] != "1") return 10;
 				if (data1[4] != "4") return 11;
 				for (uint i = 0; i < data1.length; i ++)
-					data1[i] = byte(i * 3);
+					data1[i] = byte(uint8(i * 3));
 				if (data1[4] != 4 * 3) return 12;
 				if (data1[67] != 67 * 3) return 13;
 				// change length: long -> short
@@ -7602,6 +7687,33 @@ BOOST_AUTO_TEST_CASE(multi_variable_declaration)
 				if (b != 1) return false;
 				var (,c) = g();
 				if (c != 3) return false;
+				return true;
+			}
+		}
+	)";
+	compileAndRun(sourceCode);
+	ABI_CHECK(callContractFunction("f()", encodeArgs()), encodeArgs(true));
+}
+
+BOOST_AUTO_TEST_CASE(typed_multi_variable_declaration)
+{
+	char const* sourceCode = R"(
+		contract C {
+			struct S { uint x; }
+			S s;
+			function g() internal returns (uint, S storage, uint) {
+				s.x = 7;
+				return (1, s, 2);
+			}
+			function f() returns (bool) {
+				(uint x1, S storage y1, uint z1) = g();
+				if (x1 != 1 || y1.x != 7 || z1 != 2) return false;
+				(, S storage y2,) = g();
+				if (y2.x != 7) return false;
+				(uint x2,,) = g();
+				if (x2 != 1) return false;
+				(,,uint z2) = g();
+				if (z2 != 2) return false;
 				return true;
 			}
 		}
@@ -8242,7 +8354,7 @@ BOOST_AUTO_TEST_CASE(fixed_bytes_index_access)
 			function g(bytes32 x) returns (uint) {
 				data = [x[0], x[1], x[2]];
 				data[0] = "12345";
-				return uint(data[0][4]);
+				return uint(uint8(data[0][4]));
 			}
 		}
 	)";
@@ -8300,7 +8412,7 @@ BOOST_AUTO_TEST_CASE(inline_assembly_memory_access)
 			function test() returns (bytes) {
 				bytes memory x = new bytes(5);
 				for (uint i = 0; i < x.length; ++i)
-					x[i] = byte(i + 1);
+					x[i] = byte(uint8(i + 1));
 				assembly { mstore(add(x, 32), "12345678901234567890123456789012") }
 				return x;
 			}
@@ -8820,7 +8932,7 @@ BOOST_AUTO_TEST_CASE(cleanup_bytes_types)
 			function f(bytes2 a, uint16 x) returns (uint) {
 				if (a != "ab") return 1;
 				if (x != 0x0102) return 2;
-				if (bytes3(x) != 0x0102) return 3;
+				if (bytes3(uint24(x)) != 0x0102) return 3;
 				return 0;
 			}
 		}
@@ -10122,6 +10234,23 @@ BOOST_AUTO_TEST_CASE(shift_right_assignment)
 	ABI_CHECK(callContractFunction("f(uint256,uint256)", u256(0x4266), u256(17)), encodeArgs(u256(0)));
 }
 
+BOOST_AUTO_TEST_CASE(shift_right_assignment_signed)
+{
+	char const* sourceCode = R"(
+			contract C {
+				function f(int a, int b) returns (int) {
+					a >>= b;
+					return a;
+				}
+			}
+		)";
+	compileAndRun(sourceCode, 0, "C");
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(0x4266), u256(0)), encodeArgs(u256(0x4266)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(0x4266), u256(8)), encodeArgs(u256(0x42)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(0x4266), u256(16)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(0x4266), u256(17)), encodeArgs(u256(0)));
+}
+
 BOOST_AUTO_TEST_CASE(shift_right_negative_lvalue)
 {
 	char const* sourceCode = R"(
@@ -10133,9 +10262,141 @@ BOOST_AUTO_TEST_CASE(shift_right_negative_lvalue)
 	)";
 	compileAndRun(sourceCode, 0, "C");
 	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4266), u256(0)), encodeArgs(u256(-4266)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4266), u256(1)), encodeArgs(u256(-2133)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4266), u256(4)), encodeArgs(u256(-266)));
 	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4266), u256(8)), encodeArgs(u256(-16)));
 	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4266), u256(16)), encodeArgs(u256(0)));
 	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4266), u256(17)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4267), u256(0)), encodeArgs(u256(-4267)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4267), u256(1)), encodeArgs(u256(-2133)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4267), u256(4)), encodeArgs(u256(-266)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4267), u256(8)), encodeArgs(u256(-16)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4267), u256(16)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4267), u256(17)), encodeArgs(u256(0)));
+}
+
+BOOST_AUTO_TEST_CASE(shift_right_negative_lvalue_int8)
+{
+	char const* sourceCode = R"(
+			contract C {
+				function f(int8 a, int8 b) returns (int) {
+					return a >> b;
+				}
+			}
+		)";
+	compileAndRun(sourceCode, 0, "C");
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(-66), u256(0)), encodeArgs(u256(-66)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(-66), u256(1)), encodeArgs(u256(-33)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(-66), u256(4)), encodeArgs(u256(-4)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(-66), u256(8)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(-66), u256(16)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(-66), u256(17)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(-67), u256(0)), encodeArgs(u256(-67)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(-67), u256(1)), encodeArgs(u256(-33)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(-67), u256(4)), encodeArgs(u256(-4)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(-67), u256(8)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(-67), u256(16)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(-67), u256(17)), encodeArgs(u256(0)));
+}
+
+BOOST_AUTO_TEST_CASE(shift_right_negative_lvalue_signextend_int8)
+{
+	char const* sourceCode = R"(
+			contract C {
+				function f(int8 a, int8 b) returns (int8) {
+					return a >> b;
+				}
+			}
+		)";
+	compileAndRun(sourceCode, 0, "C");
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(0x99u), u256(0)), encodeArgs(u256(-103)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(0x99u), u256(1)), encodeArgs(u256(-51)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(0x99u), u256(2)), encodeArgs(u256(-25)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(0x99u), u256(4)), encodeArgs(u256(-6)));
+	ABI_CHECK(callContractFunction("f(int8,int8)", u256(0x99u), u256(8)), encodeArgs(u256(0)));
+}
+
+BOOST_AUTO_TEST_CASE(shift_right_negative_lvalue_signextend_int16)
+{
+	char const* sourceCode = R"(
+			contract C {
+				function f(int16 a, int16 b) returns (int16) {
+					return a >> b;
+				}
+			}
+		)";
+	compileAndRun(sourceCode, 0, "C");
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(0xFF99u), u256(0)), encodeArgs(u256(-103)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(0xFF99u), u256(1)), encodeArgs(u256(-51)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(0xFF99u), u256(2)), encodeArgs(u256(-25)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(0xFF99u), u256(4)), encodeArgs(u256(-6)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(0xFF99u), u256(8)), encodeArgs(u256(0)));
+}
+
+BOOST_AUTO_TEST_CASE(shift_right_negative_lvalue_signextend_int32)
+{
+	char const* sourceCode = R"(
+			contract C {
+				function f(int32 a, int32 b) returns (int32) {
+					return a >> b;
+				}
+			}
+		)";
+	compileAndRun(sourceCode, 0, "C");
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(0xFFFFFF99u), u256(0)), encodeArgs(u256(-103)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(0xFFFFFF99u), u256(1)), encodeArgs(u256(-51)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(0xFFFFFF99u), u256(2)), encodeArgs(u256(-25)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(0xFFFFFF99u), u256(4)), encodeArgs(u256(-6)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(0xFFFFFF99u), u256(8)), encodeArgs(u256(0)));
+}
+
+
+BOOST_AUTO_TEST_CASE(shift_right_negative_lvalue_int16)
+{
+	char const* sourceCode = R"(
+			contract C {
+				function f(int16 a, int16 b) returns (int) {
+					return a >> b;
+				}
+			}
+		)";
+	compileAndRun(sourceCode, 0, "C");
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(-4266), u256(0)), encodeArgs(u256(-4266)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(-4266), u256(1)), encodeArgs(u256(-2133)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(-4266), u256(4)), encodeArgs(u256(-266)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(-4266), u256(8)), encodeArgs(u256(-16)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(-4266), u256(16)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(-4266), u256(17)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(-4267), u256(0)), encodeArgs(u256(-4267)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(-4267), u256(1)), encodeArgs(u256(-2133)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(-4267), u256(4)), encodeArgs(u256(-266)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(-4267), u256(8)), encodeArgs(u256(-16)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(-4267), u256(16)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int16,int16)", u256(-4267), u256(17)), encodeArgs(u256(0)));
+}
+
+BOOST_AUTO_TEST_CASE(shift_right_negative_lvalue_int32)
+{
+	char const* sourceCode = R"(
+			contract C {
+				function f(int32 a, int32 b) returns (int) {
+					return a >> b;
+				}
+			}
+		)";
+	compileAndRun(sourceCode, 0, "C");
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(-4266), u256(0)), encodeArgs(u256(-4266)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(-4266), u256(1)), encodeArgs(u256(-2133)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(-4266), u256(4)), encodeArgs(u256(-266)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(-4266), u256(8)), encodeArgs(u256(-16)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(-4266), u256(16)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(-4266), u256(17)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(-4267), u256(0)), encodeArgs(u256(-4267)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(-4267), u256(1)), encodeArgs(u256(-2133)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(-4267), u256(4)), encodeArgs(u256(-266)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(-4267), u256(8)), encodeArgs(u256(-16)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(-4267), u256(16)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int32,int32)", u256(-4267), u256(17)), encodeArgs(u256(0)));
 }
 
 BOOST_AUTO_TEST_CASE(shift_right_negative_lvalue_assignment)
@@ -10150,9 +10411,17 @@ BOOST_AUTO_TEST_CASE(shift_right_negative_lvalue_assignment)
 	)";
 	compileAndRun(sourceCode, 0, "C");
 	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4266), u256(0)), encodeArgs(u256(-4266)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4266), u256(1)), encodeArgs(u256(-2133)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4266), u256(4)), encodeArgs(u256(-266)));
 	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4266), u256(8)), encodeArgs(u256(-16)));
 	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4266), u256(16)), encodeArgs(u256(0)));
 	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4266), u256(17)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4267), u256(0)), encodeArgs(u256(-4267)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4267), u256(1)), encodeArgs(u256(-2133)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4267), u256(4)), encodeArgs(u256(-266)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4267), u256(8)), encodeArgs(u256(-16)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4267), u256(16)), encodeArgs(u256(0)));
+	ABI_CHECK(callContractFunction("f(int256,int256)", u256(-4267), u256(17)), encodeArgs(u256(0)));
 }
 
 BOOST_AUTO_TEST_CASE(shift_negative_rvalue)
@@ -10503,11 +10772,23 @@ BOOST_AUTO_TEST_CASE(revert_with_cause)
 {
 	char const* sourceCode = R"(
 		contract D {
+			string constant msg1 = "test1234567890123456789012345678901234567890";
+			string msg2 = "test1234567890123456789012345678901234567890";
 			function f() public {
 				revert("test123");
 			}
 			function g() public {
 				revert("test1234567890123456789012345678901234567890");
+			}
+			function h() public {
+				revert(msg1);
+			}
+			function i() public {
+				revert(msg2);
+			}
+			function j() public {
+				string memory msg3 = "test1234567890123456789012345678901234567890";
+				revert(msg3);
 			}
 		}
 		contract C {
@@ -10529,6 +10810,15 @@ BOOST_AUTO_TEST_CASE(revert_with_cause)
 			function g() public returns (bool, bytes) {
 				return forward(address(d), msg.data);
 			}
+			function h() public returns (bool, bytes) {
+				return forward(address(d), msg.data);
+			}
+			function i() public returns (bool, bytes) {
+				return forward(address(d), msg.data);
+			}
+			function j() public returns (bool, bytes) {
+				return forward(address(d), msg.data);
+			}
 		}
 	)";
 	compileAndRun(sourceCode, 0, "C");
@@ -10536,6 +10826,9 @@ BOOST_AUTO_TEST_CASE(revert_with_cause)
 	bytes const errorSignature = bytes{0x08, 0xc3, 0x79, 0xa0};
 	ABI_CHECK(callContractFunction("f()"), haveReturndata ? encodeArgs(0, 0x40, 0x64) + errorSignature + encodeArgs(0x20, 7, "test123") + bytes(28, 0) : bytes());
 	ABI_CHECK(callContractFunction("g()"), haveReturndata ? encodeArgs(0, 0x40, 0x84) + errorSignature + encodeArgs(0x20, 44, "test1234567890123456789012345678901234567890") + bytes(28, 0): bytes());
+	ABI_CHECK(callContractFunction("h()"), haveReturndata ? encodeArgs(0, 0x40, 0x84) + errorSignature + encodeArgs(0x20, 44, "test1234567890123456789012345678901234567890") + bytes(28, 0): bytes());
+	ABI_CHECK(callContractFunction("i()"), haveReturndata ? encodeArgs(0, 0x40, 0x84) + errorSignature + encodeArgs(0x20, 44, "test1234567890123456789012345678901234567890") + bytes(28, 0): bytes());
+	ABI_CHECK(callContractFunction("j()"), haveReturndata ? encodeArgs(0, 0x40, 0x84) + errorSignature + encodeArgs(0x20, 44, "test1234567890123456789012345678901234567890") + bytes(28, 0): bytes());
 }
 
 BOOST_AUTO_TEST_CASE(require_with_message)
@@ -10544,6 +10837,7 @@ BOOST_AUTO_TEST_CASE(require_with_message)
 		contract D {
 			bool flag = false;
 			string storageError = "abc";
+			string constant constantError = "abc";
 			function f(uint x) public {
 				require(x > 7, "failed");
 			}
@@ -10560,6 +10854,13 @@ BOOST_AUTO_TEST_CASE(require_with_message)
 			}
 			function h() public {
 				require(false, storageError);
+			}
+			function i() public {
+				require(false, constantError);
+			}
+			function j() public {
+				string memory errMsg = "msg";
+				require(false, errMsg);
 			}
 		}
 		contract C {
@@ -10584,6 +10885,12 @@ BOOST_AUTO_TEST_CASE(require_with_message)
 			function h() public returns (bool, bytes) {
 				return forward(address(d), msg.data);
 			}
+			function i() public returns (bool, bytes) {
+				return forward(address(d), msg.data);
+			}
+			function j() public returns (bool, bytes) {
+				return forward(address(d), msg.data);
+			}
 		}
 	)";
 	compileAndRun(sourceCode, 0, "C");
@@ -10594,6 +10901,8 @@ BOOST_AUTO_TEST_CASE(require_with_message)
 	ABI_CHECK(callContractFunction("g()"), haveReturndata ? encodeArgs(1, 0x40, 0) : bytes());
 	ABI_CHECK(callContractFunction("g()"), haveReturndata ? encodeArgs(0, 0x40, 0x64) + errorSignature + encodeArgs(0x20, 18, "only on second run") + bytes(28, 0) : bytes());
 	ABI_CHECK(callContractFunction("h()"), haveReturndata ? encodeArgs(0, 0x40, 0x64) + errorSignature + encodeArgs(0x20, 3, "abc") + bytes(28, 0): bytes());
+	ABI_CHECK(callContractFunction("i()"), haveReturndata ? encodeArgs(0, 0x40, 0x64) + errorSignature + encodeArgs(0x20, 3, "abc") + bytes(28, 0): bytes());
+	ABI_CHECK(callContractFunction("j()"), haveReturndata ? encodeArgs(0, 0x40, 0x64) + errorSignature + encodeArgs(0x20, 3, "msg") + bytes(28, 0): bytes());
 }
 
 BOOST_AUTO_TEST_CASE(bubble_up_error_messages)
@@ -10720,9 +11029,9 @@ BOOST_AUTO_TEST_CASE(negative_stack_height)
 				bool Aboolc;
 				bool exists;
 			}
-			function nredit(uint startindex) public constant returns(uint[500] CIDs, uint[500] dates, uint[500] RIDs, bool[500] Cboolas, uint[500] amounts){}
-			function return500InvoicesByDates(uint begindate, uint enddate, uint startindex) public constant returns(uint[500] AIDs, bool[500] Aboolas, uint[500] dates, bytes32[3][500] Abytesas, bytes32[3][500] bytesbs, bytes32[2][500] bytescs, uint[500] amounts, bool[500] Aboolbs, bool[500] Aboolcs){}
-			function return500PaymentsByDates(uint begindate, uint enddate, uint startindex) public constant returns(uint[500] BIDs, uint[500] dates, uint[500] RIDs, bool[500] Bboolas, bytes32[3][500] bytesbs,bytes32[2][500] bytescs, uint[500] amounts, bool[500] Bboolbs){}
+			function nredit(uint startindex) public pure returns(uint[500] CIDs, uint[500] dates, uint[500] RIDs, bool[500] Cboolas, uint[500] amounts){}
+			function return500InvoicesByDates(uint begindate, uint enddate, uint startindex) public view returns(uint[500] AIDs, bool[500] Aboolas, uint[500] dates, bytes32[3][500] Abytesas, bytes32[3][500] bytesbs, bytes32[2][500] bytescs, uint[500] amounts, bool[500] Aboolbs, bool[500] Aboolcs){}
+			function return500PaymentsByDates(uint begindate, uint enddate, uint startindex) public view returns(uint[500] BIDs, uint[500] dates, uint[500] RIDs, bool[500] Bboolas, bytes32[3][500] bytesbs,bytes32[2][500] bytescs, uint[500] amounts, bool[500] Bboolbs){}
 		}
 	)";
 	compileAndRun(sourceCode, 0, "C");
@@ -10908,13 +11217,13 @@ BOOST_AUTO_TEST_CASE(bare_call_invalid_address)
 	char const* sourceCode = R"(
 		contract C {
 			/// Calling into non-existant account is successful (creates the account)
-			function f() external view returns (bool) {
+			function f() external returns (bool) {
 				return address(0x4242).call();
 			}
-			function g() external view returns (bool) {
+			function g() external returns (bool) {
 				return address(0x4242).callcode();
 			}
-			function h() external view returns (bool) {
+			function h() external returns (bool) {
 				return address(0x4242).delegatecall();
 			}
 		}
@@ -10936,13 +11245,13 @@ BOOST_AUTO_TEST_CASE(delegatecall_return_value)
 			function get() external view returns (uint) {
 				return value;
 			}
-			function get_delegated() external view returns (bool) {
+			function get_delegated() external returns (bool) {
 				return this.delegatecall(bytes4(sha3("get()")));
 			}
 			function assert0() external view {
 				assert(value == 0);
 			}
-			function assert0_delegated() external view returns (bool) {
+			function assert0_delegated() external returns (bool) {
 				return this.delegatecall(bytes4(sha3("assert0()")));
 			}
 		}
@@ -11403,7 +11712,7 @@ BOOST_AUTO_TEST_CASE(abi_encode_v2)
 				require(y[0] == "e");
 			}
 			S s;
-			function f4() public view returns (bytes r) {
+			function f4() public returns (bytes r) {
 				string memory x = "abc";
 				s.a = 7;
 				s.b.push(2);
